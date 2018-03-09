@@ -12,14 +12,13 @@ import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Calendar;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -48,7 +47,6 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     public static final String API_URL = "https://api.sunrise-sunset.org/json";
     public static String STRAIGHT_URL;
 
-    private GoogleApiClient mGoogleApiClient;
     String mPlace;
 
     @Override
@@ -61,13 +59,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
         mProgressBar = findViewById(R.id.progress_bar);
         mResultView = findViewById(R.id.result_view);
 
-//        mSearchButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//
-//            }
-//        });
-        mGoogleApiClient = new GoogleApiClient
+        GoogleApiClient mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
                 .addApi(Places.GEO_DATA_API)
                 .addApi(Places.PLACE_DETECTION_API)
@@ -185,24 +177,37 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
                 JSONObject resObject = object.getJSONObject("results");
                 Log.i("TAG", "results" + resObject);
 
-                TimeZone tz = TimeZone.getDefault();
-                String tzName = tz.getDisplayName(false, TimeZone.SHORT);
-                String tzId = tz.getID();
-
-                Date currentDate = Calendar.getInstance(TimeZone.getDefault()).getTime();
-
                 String sunrise = resObject.optString("sunrise");
                 String sunset = resObject.optString("sunset");
+
+                TimeZone tz = TimeZone.getDefault();
+                String tzId = tz.getID();
+
+                SimpleDateFormat formatDate = new SimpleDateFormat("hh:mm:ss a");
+                Date utcSunrise = formatDate.parse(sunrise);
+                Date utcSunset = formatDate.parse(sunset);
+                Date dRise = new Date();
+                Date dSet = new Date();
+                dRise.setTime(utcSunrise.getTime() + TimeZone.getDefault().getRawOffset());
+                dSet.setTime(utcSunset.getTime() + TimeZone.getDefault().getRawOffset());
+                String currSunrise = formatDate.format(dRise);
+                String currSunset = formatDate.format(dSet);
+
+//                SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss a");
+//                Date date = sdf.parse(sunrise);
+//                sdf.setTimeZone(TimeZone.getTimeZone("EET"));
+//                sdf.parse(sunrise);
+//                String newString = sdf.format(new Date());
+
                 String dayLength = resObject.optString("day_length");
                 Log.i("TAG", "sunrise: " + sunrise + " " + "sunset: " + sunset);
                 StringBuilder strBuilder = new StringBuilder();
                 strBuilder.append(mResultView.getText()).append("In your current location \n")
-                        .append("Sunrise is in: ").append(sunrise).append("\n")
-                        .append("Sunset is in: ").append(sunset).append("\n").append("Day Length: ")
-                        .append(dayLength).append("\n").append("Time zone: ").append(tzName).append(" ").append(tzId) ;
+                        .append("Sunrise is in: ").append(currSunrise).append("\n")
+                        .append("Sunset is in: ").append(currSunset).append("\n").append("Day Length: ")
+                        .append(dayLength).append("\n").append("Time zone: ").append(tzId);
                 mResultView.setText(strBuilder);
-
-            } catch (JSONException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
